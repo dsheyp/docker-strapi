@@ -9,10 +9,11 @@ if [ "$*" = "strapi" ]; then
 
     EXTRA_ARGS=${EXTRA_ARGS}
 
-    echo "Using strapi v${STRAPI_VERSION}"
+    echo "Using strapi v$STRAPI_VERSION"
     echo "No project found at /srv/app. Creating a new strapi project ..."
 
     DOCKER=true npx create-strapi-app@${STRAPI_VERSION} . --no-run \
+      --skip-cloud \
       --dbclient=$DATABASE_CLIENT \
       --dbhost=$DATABASE_HOST \
       --dbport=$DATABASE_PORT \
@@ -172,7 +173,15 @@ EOT
 
   echo "Starting your app (with ${STRAPI_MODE:-develop})..."
 
-  exec yarn "${STRAPI_MODE:-develop}"
+  if [ -f "yarn.lock" ]; then
+
+    exec yarn "${STRAPI_MODE:-develop}"
+
+  else
+
+    exec npm run "${STRAPI_MODE:-develop}"
+
+  fi
 
 else
   exec "$@"
