@@ -45,6 +45,7 @@ jobs:
             STRAPI_VERSION=${{steps.vars.outputs.tag}}
             NODE_VERSION=18
             NODE=node
+            GITHUB_ACTIONS=1
           tags: ${{ secrets.DOCKER_USERNAME }}/strapi:test
 
       - name: Test Image

@@ -12,16 +12,37 @@ if [ "$*" = "strapi" ]; then
     echo "Using strapi v$STRAPI_VERSION"
     echo "No project found at /srv/app. Creating a new strapi project ..."
 
-    DOCKER=true npx create-strapi-app@${STRAPI_VERSION} . --no-run \
-      --skip-cloud \
-      --dbclient=$DATABASE_CLIENT \
-      --dbhost=$DATABASE_HOST \
-      --dbport=$DATABASE_PORT \
-      --dbname=$DATABASE_NAME \
-      --dbusername=$DATABASE_USERNAME \
-      --dbpassword=$DATABASE_PASSWORD \
-      --dbssl=$DATABASE_SSL \
-      $EXTRA_ARGS
+    if [ "${STRAPI_VERSION#5}" != "$STRAPI_VERSION" ]; then
+      DOCKER=true npx create-strapi-app@${STRAPI_VERSION} . --no-run \
+        --js \
+        --install \
+        --no-git-init \
+        --no-example \
+        --skip-cloud \
+        --skip-db \
+        $EXTRA_ARGS
+    elif [ "${STRAPI_VERSION#4.25}" != "$STRAPI_VERSION" ]; then
+      DOCKER=true npx create-strapi-app@${STRAPI_VERSION} . --no-run \
+        --skip-cloud \
+        --dbclient=$DATABASE_CLIENT \
+        --dbhost=$DATABASE_HOST \
+        --dbport=$DATABASE_PORT \
+        --dbname=$DATABASE_NAME \
+        --dbusername=$DATABASE_USERNAME \
+        --dbpassword=$DATABASE_PASSWORD \
+        --dbssl=$DATABASE_SSL \
+        $EXTRA_ARGS
+    else
+      DOCKER=true npx create-strapi-app@${STRAPI_VERSION} . --no-run \
+        --dbclient=$DATABASE_CLIENT \
+        --dbhost=$DATABASE_HOST \
+        --dbport=$DATABASE_PORT \
+        --dbname=$DATABASE_NAME \
+        --dbusername=$DATABASE_USERNAME \
+        --dbpassword=$DATABASE_PASSWORD \
+        --dbssl=$DATABASE_SSL \
+        $EXTRA_ARGS
+    fi
     
     echo "" >| 'config/server.js'
     echo "" >| 'config/admin.js'
@@ -109,26 +130,32 @@ EOT
 
   fi
 
-  if [ -f "yarn.lock" ]; then
-
-    current_strapi_version="$(yarn list --pattern strapi --depth=0 | grep @strapi/strapi | cut -d @ -f 3)"
-    current_strapi_code="$(echo "${current_strapi_version}" | tr -d "." )"
-    image_strapi_code="$(echo "${STRAPI_VERSION}" | tr -d "." )"
-    if [ "${image_strapi_code}" -gt "${current_strapi_code}" ]; then
-      echo "Strapi update v${STRAPI_VERSION} found. Currently using v${current_strapi_version}. Updating using yarn ..."
-      yarn add "@strapi/strapi@${STRAPI_VERSION}" "@strapi/plugin-users-permissions@${STRAPI_VERSION}" "@strapi/plugin-i18n@${STRAPI_VERSION}" "@strapi/plugin-cloud@${STRAPI_VERSION}" --prod --silent  || echo "Update failed!"
-    fi
-
+  if [ "${STRAPI_VERSION#5}" != "$STRAPI_VERSION" ]; then
+    : '
+      Implement upgrade to Strapi v5
+    '
   else
-    
-    current_strapi_version="$(npm list | grep @strapi/strapi | cut -d @ -f 3)"
-    current_strapi_code="$(echo "${current_strapi_version}" | tr -d "." )"
-    image_strapi_code="$(echo "${STRAPI_VERSION}" | tr -d "." )"
-    if [ "${image_strapi_code}" -gt "${current_strapi_code}" ]; then
-      echo "Strapi update v${STRAPI_VERSION} found. Currently using v${current_strapi_version}. Updating using npm ..."
-      npm install @strapi/strapi@"${STRAPI_VERSION}" @strapi/plugin-users-permissions@"${STRAPI_VERSION}" @strapi/plugin-i18n@"${STRAPI_VERSION}" @strapi/plugin-cloud@"${STRAPI_VERSION}" --only=prod --silent  || echo "Update failed!"
-    fi
+    if [ -f "yarn.lock" ]; then
 
+      current_strapi_version="$(yarn list --pattern strapi --depth=0 | grep @strapi/strapi | cut -d @ -f 3)"
+      current_strapi_code="$(echo "${current_strapi_version}" | tr -d "." )"
+      image_strapi_code="$(echo "${STRAPI_VERSION}" | tr -d "." )"
+      if [ "${image_strapi_code}" -gt "${current_strapi_code}" ]; then
+        echo "Strapi update v${STRAPI_VERSION} found. Currently using v${current_strapi_version}. Updating using yarn ..."
+        yarn add "@strapi/strapi@${STRAPI_VERSION}" "@strapi/plugin-users-permissions@${STRAPI_VERSION}" "@strapi/plugin-i18n@${STRAPI_VERSION}" "@strapi/plugin-cloud@${STRAPI_VERSION}" --prod --silent  || echo "Update failed!"
+      fi
+
+    else
+      
+      current_strapi_version="$(npm list | grep @strapi/strapi | cut -d @ -f 3)"
+      current_strapi_code="$(echo "${current_strapi_version}" | tr -d "." )"
+      image_strapi_code="$(echo "${STRAPI_VERSION}" | tr -d "." )"
+      if [ "${image_strapi_code}" -gt "${current_strapi_code}" ]; then
+        echo "Strapi update v${STRAPI_VERSION} found. Currently using v${current_strapi_version}. Updating using npm ..."
+        npm install @strapi/strapi@"${STRAPI_VERSION}" @strapi/plugin-users-permissions@"${STRAPI_VERSION}" @strapi/plugin-i18n@"${STRAPI_VERSION}" @strapi/plugin-cloud@"${STRAPI_VERSION}" --only=prod --silent  || echo "Update failed!"
+      fi
+
+    fi
   fi
 
   if [ -f "yarn.lock" ]; then
