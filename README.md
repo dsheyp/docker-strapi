@@ -1,11 +1,10 @@
-# strapi (v4+) containerized
+# Strapi (v4+ and v5+) containerized
 
 ![Strapi](https://github.com/V-Shadbolt/Docker-strapi/blob/main/assets/PNG.logo.purple.dark.png?raw=true)
 
-> Docker image for strapi version 4 (latest version)
+> Docker image for Strapi v4 and Strapi v5 (latest version)
 
-API creation made simple, secure and fast. The most advanced open-source Content Management Framework to build powerful
-API with no effort.
+API creation made simple, secure and fast. The most advanced open-source Content Management Framework to build powerful API with no effort.
 
 [GitHub repository](https://github.com/V-Shadbolt/Docker-strapi)
 
@@ -19,7 +18,7 @@ API with no effort.
 
 This image allows you to create a new Strapi project or run an existing Strapi project in Docker.
 
-FOr either new or existing projects, changing the `NODE_ENV` environment variable will determine how your projects starts.
+For either new or existing projects, changing the `NODE_ENV` environment variable will determine how your projects starts.
 
 - `$NODE_ENV = development`: The command that will run in your project
   in dev mode with [`strapi develop`](https://docs.strapi.io/developer-docs/latest/developer-resources/cli/CLI.html#strapi-develop).
@@ -33,7 +32,7 @@ FOr either new or existing projects, changing the `NODE_ENV` environment variabl
 
 ## Creating a new Strapi project
 
-When running this image, strapi will check if there is a project in the `/srv/app` folder of the container. If there is not an existing project, it will run the [`create strapi-app`](https://docs.strapi.io/dev-docs/quick-start#-part-a-create-a-new-project-with-strapi) command in the container' /srv/app folder.
+When running this image, Strapi will check if there is a project in the `/srv/app` folder of the container. If there is not an existing project, it will run the [`create strapi-app`](https://docs.strapi.io/dev-docs/quick-start#-part-a-create-a-new-project-with-strapi) command in the containers' `/srv/app` folder.
 
 This command defaults to creating a project with an SQLite database and then starts Strapi on port `1337`.
 
@@ -83,7 +82,7 @@ Finally, we have a variable for re-building Strapi. After modifying any of the f
 
 > Here is a completed example [compose file](./examples/strapi-postgres/docker-compose.yml) for the available environment variables as well as the configuration for a postgres database. You can find more examples [here](https://github.com/V-Shadbolt/docker-strapi/tree/main/examples).
 
-- The official documentation for strapi and these files is linked below.
+- The official documentation for Strapi and these files is linked below.
 
 ---
 
@@ -99,22 +98,38 @@ For existing projects that were created using this image an your are migrating t
 
 ## Updating Strapi
 
-To upgrade Strapi, stop your Strapi container and pull the latest image / update your compose file with the respective tag / Strapi version you would like to upgrade to. Then re-create your Strapi container with the new image. 
+### V4+
+To upgrade Strapi v4+, stop your Strapi container and pull the image / update your compose file with the respective tag for the Strapi version you would like to upgrade to. Then re-create your Strapi container with the new image. 
 
-> Note the upgrade process is very slow and may upgrade across major versions. There may be breaking changes between upgrades. Please remember to backup responsibly.
+> Note the upgrade process is very slow, automatic, and will upgrade across minor and patch versions. There may be breaking changes between upgrades. Please remember to backup responsibly.
+
+### V4 to V5
+
+To upgrade from Strapi v4 to Strapi v5, stop your Strapi container and pull the latest image / update your compose file with the `latest` tag. Then re-create your Strapi container with the new image. The image should handle the upgrade without user intervention. Ensure you have a backup in place as the new Strapi [Upgrade Tool](https://docs.strapi.io/dev-docs/upgrade-tool) may fail.
+
+> Note the upgrade process can be slow and will upgrade across major / minor versions. There may be breaking changes between upgrades. Please remember to backup responsibly.
+
+### V5+
+  
+To upgrade Strapi v5+, stop your Strapi container and pull the latest image / update your compose file with the `latest` tag. Then re-create your Strapi container with the new image.
+
+:warning: Strapi v5 now utilizes an [Upgrade Tool](https://docs.strapi.io/dev-docs/upgrade-tool) that doesn't have version pinning. If you pull a Docker image with a higher v5.x.x Strapi version than what you are currently running ***it will always upgrade to the latest version of v5. Regardless of image version.*** It is therefore recommended to only use the `latest` tag for any implementations of Strapi v5. 
+  
+
+> Note the upgrade process can be slow and will upgrade across major / minor versions. There may be breaking changes between upgrades. Please remember to backup responsibly.
 
 ---
 
 ### Missing React modules for Strapi v4.15.5+
 
-The Docker entrypoint and Docker file have been modified to replace the `strapi new` command (now deprecated) with `npx create strapi-app` which will gather the required packages. With this change, the image is now substantially smaller. For existing strapi projects, the updated entrypoint will add the missing packages [`react`, `react-dom`, `react-router-dom`, `styled-components`] if they haven't already been installed. Please remember to backup responsibly.
+The Docker entrypoint and Docker file have been modified to replace the `strapi new` command (now deprecated) with `npx create strapi-app` which will gather the required packages. With this change, the image is now substantially smaller. For existing Strapi projects, the updated entrypoint will add the missing packages [`react`, `react-dom`, `react-router-dom`, `styled-components`] if they haven't already been installed. Please remember to backup responsibly.
 
 ---
 
 # Official Documentation
 
-- The official documentation of strapi is available on [https://docs.strapi.io/](https://docs.strapi.io/).
+- The official documentation of Strapi is available on [https://docs.strapi.io/](https://docs.strapi.io/).
 
-- The official strapi Docker image is available on [GitHub](https://github.com/strapi/strapi-Docker) (not yet upgraded to v4).
+- The official Strapi Docker image is available on [GitHub](https://github.com/strapi/strapi-Docker) (not yet upgraded to v4).
 
-- The official Docker documentation for strapi, including example Dockerfiles, is available on [https://docs.strapi.io/dev-docs/installation/Docker](https://docs.strapi.io/dev-docs/installation/Docker).
+- The official Docker documentation for Strapi, including example Dockerfiles, is available on [https://docs.strapi.io/dev-docs/installation/Docker](https://docs.strapi.io/dev-docs/installation/Docker).
