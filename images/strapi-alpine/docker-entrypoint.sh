@@ -131,9 +131,37 @@ EOT
   fi
 
   if [ "${STRAPI_VERSION#5}" != "$STRAPI_VERSION" ]; then
-    : '
-      Implement upgrade to Strapi v5
-    '
+    if [ -f "yarn.lock" ]; then
+      current_strapi_version="$(yarn list --pattern strapi --depth=0 | grep @strapi/strapi | cut -d @ -f 3)"
+    else
+      current_strapi_version="$(npm list | grep @strapi/strapi | cut -d @ -f 3)"
+    fi
+
+    get_version_parts() {
+      echo "$1" | awk -F. '{print $1, $2, $3}'
+    }
+
+    read current_major current_minor current_patch <<< $(get_version_parts "$current_strapi_version")
+    read image_major image_minor image_patch <<< $(get_version_parts "$STRAPI_VERSION")
+
+    if [ "$image_major" -eq "$current_major" ] && [ "$image_minor" -eq "$current_minor" ] && [ "$image_patch" -gt "$current_patch"]; then
+      echo "Patch upgrade needed: v${current_strapi_version} to v${image_major}.${image_minor}.${image_patch}. Upgrading..."
+      npx @strapi/upgrade patch -y || echo "Patch upgrade failed" && exit 1
+    fi
+
+    if [ "$image_major" -eq "$current_major" ] && [ "$image_minor" -gt "$current_minor" ]; then
+      echo "Minor upgrade needed: v${current_strapi_version} to v${image_major}.${image_minor}.${image_patch}. Upgrading..."
+      npx @strapi/upgrade minor -y || echo "Minor upgrade failed" && exit 1
+    fi
+
+    if [ "$image_major" -gt "$current_major" ]; then
+      echo "Major upgrade needed: v${current_strapi_version} to v${image_major}.${image_minor}.${image_patch}. Upgrading..."
+      echo "Ensuring the current version of Strapi is on the latest minor and patch before major upgrade..."
+      npx @strapi/upgrade patch -y || echo "Patch upgrade failed or not needed, continuing..."
+      npx @strapi/upgrade minor -y || echo "Minor upgrade failed or not needed, continuing..."
+      echo "Performing major upgrade to v${image_major}..."
+      npx @strapi/upgrade major -y || echo "Major upgrade failed" && exit 1
+    fi
   else
     if [ -f "yarn.lock" ]; then
 
