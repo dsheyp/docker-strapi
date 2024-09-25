@@ -141,17 +141,26 @@ EOT
       echo "$1" | awk -F. '{print $1, $2, $3}'
     }
 
-    read current_major current_minor current_patch <<< $(get_version_parts "$current_strapi_version")
-    read image_major image_minor image_patch <<< $(get_version_parts "$STRAPI_VERSION")
+    version_parts=$(get_version_parts "$current_strapi_version")
+    set -- $version_parts
+    current_major=$1
+    current_minor=$2
+    current_patch=$3
 
-    if [ "$image_major" -eq "$current_major" ] && [ "$image_minor" -eq "$current_minor" ] && [ "$image_patch" -gt "$current_patch"]; then
+    version_parts=$(get_version_parts "$STRAPI_VERSION")
+    set -- $version_parts
+    image_major=$1
+    image_minor=$2
+    image_patch=$3
+
+    if [ "$image_major" -eq "$current_major" ] && [ "$image_minor" -eq "$current_minor" ] && [ "$image_patch" -gt "$current_patch" ]; then
       echo "Patch upgrade needed: v${current_strapi_version} to v${image_major}.${image_minor}.${image_patch}. Upgrading..."
-      npx @strapi/upgrade patch -y || echo "Patch upgrade failed" && exit 1
+      npx @strapi/upgrade patch -y || { echo "Patch upgrade failed"; exit 1; }
     fi
 
     if [ "$image_major" -eq "$current_major" ] && [ "$image_minor" -gt "$current_minor" ]; then
       echo "Minor upgrade needed: v${current_strapi_version} to v${image_major}.${image_minor}.${image_patch}. Upgrading..."
-      npx @strapi/upgrade minor -y || echo "Minor upgrade failed" && exit 1
+      npx @strapi/upgrade minor -y || { echo "Minor upgrade failed"; exit 1; }
     fi
 
     if [ "$image_major" -gt "$current_major" ]; then
@@ -160,7 +169,7 @@ EOT
       npx @strapi/upgrade patch -y || echo "Patch upgrade failed or not needed, continuing..."
       npx @strapi/upgrade minor -y || echo "Minor upgrade failed or not needed, continuing..."
       echo "Performing major upgrade to v${image_major}..."
-      npx @strapi/upgrade major -y || echo "Major upgrade failed" && exit 1
+      npx @strapi/upgrade major -y || { echo "Major upgrade failed"; exit 1; }
     fi
   else
     if [ -f "yarn.lock" ]; then
