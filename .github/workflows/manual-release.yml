@@ -22,10 +22,17 @@ jobs:
         with:
           token: ${{ secrets.PAT }}
 
-      - name: Fetch release version
-        id: fetch-version
+      - name: Fetch v4 release version
+        id: fetch-v4-version
+        if: startsWith(github.event.inputs.version, '4')
         run: |
-          echo "${{ github.event.inputs.version }}" > release-versions/strapi-latest.txt
+          echo "${{ github.event.inputs.version }}" > release-versions/strapi-v4-latest.txt
+      
+      - name: Fetch v5 release version
+        id: fetch-v5-version
+        if: startsWith(github.event.inputs.version, '5')
+        run: |
+          echo "${{ github.event.inputs.version }}" > release-versions/strapi-v5-latest.txt
 
       - uses: stefanzweifel/git-auto-commit-action@v5
         with:

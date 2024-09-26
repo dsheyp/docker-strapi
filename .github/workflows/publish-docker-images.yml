@@ -19,10 +19,25 @@ jobs:
 
       - name: Get current repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v45
+        with:
+          files: release-versions/**
 
       - name: Get the version
         id: vars
-        run: echo "tag=$(cat release-versions/strapi-latest.txt)" >> "$GITHUB_OUTPUT"
+        run: |
+          if echo "${{ steps.changed-files.outputs.modified_files }}" | grep -q 'strapi-v5-latest.txt'; then
+            echo "tag=$(cat release-versions/strapi-v5-latest.txt)" >> "$GITHUB_OUTPUT"
+            echo "latest=latest" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=$(cat release-versions/strapi-v4-latest.txt)" >> "$GITHUB_OUTPUT"
+            echo "latest=latest-v4" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -64,8 +79,7 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/strapi:${{ steps.vars.outputs.tag }}
-            ${{ secrets.DOCKER_USERNAME }}/strapi:latest
-
+            ${{ secrets.DOCKER_USERNAME }}/strapi:${{ steps.vars.outputs.latest }}
       - name: Build (alpine)
         uses: docker/build-push-action@v6
         with:
@@ -78,7 +92,7 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/strapi:${{ steps.vars.outputs.tag }}-alpine
-            ${{ secrets.DOCKER_USERNAME }}/strapi:latest-alpine
+            ${{ secrets.DOCKER_USERNAME }}/strapi:${{ steps.vars.outputs.latest }}-alpine
       
       - name: Build (default => debian arm64)
         uses: docker/build-push-action@v6
@@ -92,7 +106,7 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/strapi:${{ steps.vars.outputs.tag }}-arm64
-            ${{ secrets.DOCKER_USERNAME }}/strapi:latest-arm64
+            ${{ secrets.DOCKER_USERNAME }}/strapi:${{ steps.vars.outputs.latest }}-arm64
 
       - name: Build (alpine arm64)
         uses: docker/build-push-action@v6
@@ -106,7 +120,7 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/strapi:${{ steps.vars.outputs.tag }}-alpine-arm64
-            ${{ secrets.DOCKER_USERNAME }}/strapi:latest-alpine-arm64
+            ${{ secrets.DOCKER_USERNAME }}/strapi:${{ steps.vars.outputs.latest }}-alpine-arm64
 
       - name: Docker Hub Description (README.md)
         uses: peter-evans/dockerhub-description@v4
