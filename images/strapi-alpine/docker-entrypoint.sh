@@ -155,21 +155,46 @@ EOT
 
     if [ "$image_major" -eq "$current_major" ] && [ "$image_minor" -eq "$current_minor" ] && [ "$image_patch" -gt "$current_patch" ]; then
       echo "Patch upgrade needed: v${current_strapi_version} to v${image_major}.${image_minor}.${image_patch}. Upgrading..."
-      npx @strapi/upgrade patch -y || { echo "Patch upgrade failed"; exit 1; }
+      npx @strapi/upgrade@${STRAPI_VERSION} patch -y || { echo "Patch upgrade failed"; exit 1; }
     fi
 
     if [ "$image_major" -eq "$current_major" ] && [ "$image_minor" -gt "$current_minor" ]; then
       echo "Minor upgrade needed: v${current_strapi_version} to v${image_major}.${image_minor}.${image_patch}. Upgrading..."
-      npx @strapi/upgrade minor -y || { echo "Minor upgrade failed"; exit 1; }
+      npx @strapi/upgrade@${STRAPI_VERSION} minor -y || { echo "Minor upgrade failed"; exit 1; }
     fi
 
     if [ "$image_major" -gt "$current_major" ]; then
       echo "Major upgrade needed: v${current_strapi_version} to v${image_major}.${image_minor}.${image_patch}. Upgrading..."
       echo "Ensuring the current version of Strapi is on the latest minor and patch before major upgrade..."
-      npx @strapi/upgrade patch -y || echo "Patch upgrade failed or not needed, continuing..."
-      npx @strapi/upgrade minor -y || echo "Minor upgrade failed or not needed, continuing..."
-      echo "Performing major upgrade to v${image_major}..."
-      npx @strapi/upgrade major -y || { echo "Major upgrade failed"; exit 1; }
+      echo "Performing pre-upgrade patch updates..."
+      npx @strapi/upgrade@${STRAPI_VERSION} patch -y || echo "Pre-upgrade patch update failed or not needed. Check the logs. Continuing..."
+      echo "Performing pre-upgrade minor updates..."
+      npx @strapi/upgrade@${STRAPI_VERSION} minor -y || echo "Pre-upgrade minor update failed or not needed. Check the logs. Continuing..."
+      echo "Performing major upgrade..."
+      npx @strapi/upgrade@${STRAPI_VERSION} major -y || { echo "Major upgrade failed"; exit 1; }
+
+      if [ -f "yarn.lock" ]; then
+        current_strapi_version="$(yarn list --pattern strapi --depth=0 | grep @strapi/strapi | cut -d @ -f 3)"
+      else
+        current_strapi_version="$(npm list | grep @strapi/strapi | cut -d @ -f 3)"
+      fi
+
+      version_parts=$(get_version_parts "$current_strapi_version")
+      set -- $version_parts
+      current_major=$1
+      current_minor=$2
+      current_patch=$3
+
+      if [ "$image_major" -eq "$current_major" ] && [ "$image_minor" -eq "$current_minor" ] && [ "$image_patch" -gt "$current_patch" ]; then
+        echo "Post-upgrade patch update needed: v${current_strapi_version} to v${image_major}.${image_minor}.${image_patch}. Updating..."
+        npx @strapi/upgrade@${STRAPI_VERSION} patch -y || { echo "Post-upgrade patch update failed"; exit 1; }
+      fi
+
+      if [ "$image_major" -eq "$current_major" ] && [ "$image_minor" -gt "$current_minor" ]; then
+        echo "Post-upgrade minor update needed: v${current_strapi_version} to v${image_major}.${image_minor}.${image_patch}. Updating..."
+        npx @strapi/upgrade@${STRAPI_VERSION} minor -y || { echo "Post-upgrade minor update failed"; exit 1; }
+      fi
+
     fi
   else
     if [ -f "yarn.lock" ]; then
@@ -178,8 +203,8 @@ EOT
       current_strapi_code="$(echo "${current_strapi_version}" | tr -d "." )"
       image_strapi_code="$(echo "${STRAPI_VERSION}" | tr -d "." )"
       if [ "${image_strapi_code}" -gt "${current_strapi_code}" ]; then
-        echo "Strapi update v${STRAPI_VERSION} found. Currently using v${current_strapi_version}. Updating using yarn ..."
-        yarn add "@strapi/strapi@${STRAPI_VERSION}" "@strapi/plugin-users-permissions@${STRAPI_VERSION}" "@strapi/plugin-i18n@${STRAPI_VERSION}" "@strapi/plugin-cloud@${STRAPI_VERSION}" --prod --silent  || echo "Update failed!"
+        echo "Strapi update needed: v${current_strapi_version} to v${STRAPI_VERSION}. Updating using yarn ..."
+        yarn add "@strapi/strapi@${STRAPI_VERSION}" "@strapi/plugin-users-permissions@${STRAPI_VERSION}" "@strapi/plugin-i18n@${STRAPI_VERSION}" "@strapi/plugin-cloud@${STRAPI_VERSION}" --prod || echo "Update failed!"
       fi
 
     else
@@ -188,8 +213,8 @@ EOT
       current_strapi_code="$(echo "${current_strapi_version}" | tr -d "." )"
       image_strapi_code="$(echo "${STRAPI_VERSION}" | tr -d "." )"
       if [ "${image_strapi_code}" -gt "${current_strapi_code}" ]; then
-        echo "Strapi update v${STRAPI_VERSION} found. Currently using v${current_strapi_version}. Updating using npm ..."
-        npm install @strapi/strapi@"${STRAPI_VERSION}" @strapi/plugin-users-permissions@"${STRAPI_VERSION}" @strapi/plugin-i18n@"${STRAPI_VERSION}" @strapi/plugin-cloud@"${STRAPI_VERSION}" --only=prod --silent  || echo "Update failed!"
+        echo "Strapi update needed: v${current_strapi_version} to v${STRAPI_VERSION}. Updating using npm ..."
+        npm install @strapi/strapi@"${STRAPI_VERSION}" @strapi/plugin-users-permissions@"${STRAPI_VERSION}" @strapi/plugin-i18n@"${STRAPI_VERSION}" @strapi/plugin-cloud@"${STRAPI_VERSION}" --only=prod || echo "Update failed!"
       fi
 
     fi
@@ -199,14 +224,14 @@ EOT
 
     if ! grep -q "\"react\"" package.json; then
       echo "Adding React and Styled Components with yarn..."
-      yarn add "react@^18.0.0" "react-dom@^18.0.0" "react-router-dom@^5.3.4" "styled-components@^5.3.3" --prod --silent || echo "Adding React and Styled Components failed!"
+      yarn add "react@^18.0.0" "react-dom@^18.0.0" "react-router-dom@^5.3.4" "styled-components@^5.3.3" --prod || echo "Adding React and Styled Components failed!"
     fi
 
   else
 
     if ! grep -q "\"react\"" package.json; then
       echo "Adding React and Styled Components with npm..."
-      npm install react@"^18.0.0" react-dom@"^18.0.0" react-router-dom@"^5.3.4" styled-components@"^5.3.3" --only=prod --silent || echo "Adding React and Styled Components failed!"
+      npm install react@"^18.0.0" react-dom@"^18.0.0" react-router-dom@"^5.3.4" styled-components@"^5.3.3" --only=prod || echo "Adding React and Styled Components failed!"
     fi
 
   fi

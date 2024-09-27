@@ -105,19 +105,17 @@ To upgrade Strapi v4+, stop your Strapi container and pull the image / update yo
 
 ### V4 to V5
 
-:warning: To upgrade from Strapi v4 to Strapi v5, stop your Strapi container and pull the latest image / update your compose file with the `latest` tag. Then re-create your Strapi container with the new image. The image *should* handle the migration without user intervention outside of Database and API changes. Ensure you have a backup in place as the new Strapi [Upgrade Tool](https://docs.strapi.io/dev-docs/upgrade-tool) may fail with unresolvable dependency conflicts.
+:warning: Proceed with caution. To upgrade from Strapi v4 to Strapi v5, stop your Strapi container and pull the latest image / update your compose file with the `latest` or any `:5.x.x` tag. Then re-create your Strapi container with the new image. The image *should* handle the migration without user intervention outside of Database and API changes. Ensure you have a backup in place as the new Strapi [Upgrade Tool](https://docs.strapi.io/dev-docs/upgrade-tool) may fail with unresolvable dependency conflicts, may not properly update the codebase, or cause your existing configuration to break.
 
 [Official Upgrade Guide](https://docs.strapi.io/dev-docs/migration/v4-to-v5/step-by-step) 
 
-> Note the upgrade process can be slow, intensive, and will upgrade across major versions. There may be breaking changes between upgrades. Please remember to backup responsibly.
+> Note the upgrade process can be slow, intensive, and will upgrade across major, minor, and patch versions. There may be breaking changes between upgrades. Please remember to backup responsibly.
 
 ### V5+
   
-To upgrade Strapi v5+, stop your Strapi container and pull the latest image / update your compose file with the `latest` tag. Then re-create your Strapi container with the new image.
+To upgrade Strapi v5+, stop your Strapi container and and pull the image / update your compose file with the respective tag for the Strapi version you would like to upgrade to: `:5.x.x` or `:latest`.. Then re-create your Strapi container with the new image.
 
-:warning: Strapi v5 now utilizes an [Upgrade Tool](https://docs.strapi.io/dev-docs/upgrade-tool) that doesn't have version pinning. If you pull a Docker image with a higher v5.x.x Strapi version than what you are currently running ***it will always upgrade to the latest version of v5. Regardless of image version.*** It is therefore recommended to only use the `latest` tag for any implementations of Strapi v5. 
-
-> Note the upgrade process can be slow and will upgrade across major / minor versions. There may be breaking changes between upgrades. Please remember to backup responsibly.
+> :warning: Strapi v5 now utilizes an [Upgrade Tool](https://docs.strapi.io/dev-docs/upgrade-tool) that may fail with unresolvable dependency conflicts or otherwise loop. Also Note the upgrade process can be slow and will upgrade across minor and patch versions. There may be breaking changes between upgrades. Please remember to backup responsibly.
 
 ---
 
