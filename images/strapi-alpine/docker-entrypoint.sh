@@ -115,31 +115,25 @@ module.exports = ({env}) => ([
 EOT
 
   elif [ ! -d "node_modules" ] || [ ! "$(ls -qAL node_modules 2>/dev/null)" ]; then
-
+    echo "Node modules not installed. Installing ..."
     if [ -f "yarn.lock" ]; then
-
-      echo "Node modules not installed. Installing using yarn ..."
-      yarn install --prod --silent
-
+      yarn install --prod
     else
-
-      echo "Node modules not installed. Installing using npm ..."
-      npm install --only=prod --silent
-
+      npm install --only=prod
     fi
-
   fi
 
-  if [ "${STRAPI_VERSION#5}" != "$STRAPI_VERSION" ]; then
-    if [ -f "yarn.lock" ]; then
-      current_strapi_version="$(yarn list --pattern strapi --depth=0 | grep @strapi/strapi | cut -d @ -f 3)"
-    else
-      current_strapi_version="$(npm list | grep @strapi/strapi | cut -d @ -f 3)"
-    fi
+  if [ -f "yarn.lock" ]; then
+    current_strapi_version="$(yarn list --pattern strapi --depth=0 | grep @strapi/strapi | cut -d @ -f 3)"
+  else
+    current_strapi_version="$(npm list | grep @strapi/strapi | cut -d @ -f 3)"
+  fi
 
-    get_version_parts() {
-      echo "$1" | awk -F. '{print $1, $2, $3}'
-    }
+  get_version_parts() {
+    echo "$1" | awk -F. '{print $1, $2, $3}'
+  }
+
+  if [ "${STRAPI_VERSION#5}" != "$STRAPI_VERSION" ]; then
 
     version_parts=$(get_version_parts "$current_strapi_version")
     set -- $version_parts
@@ -174,84 +168,59 @@ EOT
       npx @strapi/upgrade@${STRAPI_VERSION} major -y || { echo "Major upgrade failed"; exit 1; }
 
       if [ -f "yarn.lock" ]; then
-        current_strapi_version="$(yarn list --pattern strapi --depth=0 | grep @strapi/strapi | cut -d @ -f 3)"
+        updated_strapi_version="$(yarn list --pattern strapi --depth=0 | grep @strapi/strapi | cut -d @ -f 3)"
       else
-        current_strapi_version="$(npm list | grep @strapi/strapi | cut -d @ -f 3)"
+        updated_strapi_version="$(npm list | grep @strapi/strapi | cut -d @ -f 3)"
       fi
 
-      version_parts=$(get_version_parts "$current_strapi_version")
+      version_parts=$(get_version_parts "$updated_strapi_version")
       set -- $version_parts
-      current_major=$1
-      current_minor=$2
-      current_patch=$3
+      updated_major=$1
+      updated_minor=$2
+      updated_patch=$3
 
-      if [ "$image_major" -eq "$current_major" ] && [ "$image_minor" -eq "$current_minor" ] && [ "$image_patch" -gt "$current_patch" ]; then
+      if [ "$image_major" -eq "$updated_major" ] && [ "$image_minor" -eq "$updated_minor" ] && [ "$image_patch" -gt "$updated_patch" ]; then
         echo "Post-upgrade patch update needed: v${current_strapi_version} to v${image_major}.${image_minor}.${image_patch}. Updating..."
         npx @strapi/upgrade@${STRAPI_VERSION} patch -y || { echo "Post-upgrade patch update failed"; exit 1; }
       fi
 
-      if [ "$image_major" -eq "$current_major" ] && [ "$image_minor" -gt "$current_minor" ]; then
+      if [ "$image_major" -eq "$updated_major" ] && [ "$image_minor" -gt "$updated_minor" ]; then
         echo "Post-upgrade minor update needed: v${current_strapi_version} to v${image_major}.${image_minor}.${image_patch}. Updating..."
         npx @strapi/upgrade@${STRAPI_VERSION} minor -y || { echo "Post-upgrade minor update failed"; exit 1; }
       fi
 
     fi
   else
-    if [ -f "yarn.lock" ]; then
-
-      current_strapi_version="$(yarn list --pattern strapi --depth=0 | grep @strapi/strapi | cut -d @ -f 3)"
-      current_strapi_code="$(echo "${current_strapi_version}" | tr -d "." )"
-      image_strapi_code="$(echo "${STRAPI_VERSION}" | tr -d "." )"
-      if [ "${image_strapi_code}" -gt "${current_strapi_code}" ]; then
-        echo "Strapi update needed: v${current_strapi_version} to v${STRAPI_VERSION}. Updating using yarn ..."
-        yarn add "@strapi/strapi@${STRAPI_VERSION}" "@strapi/plugin-users-permissions@${STRAPI_VERSION}" "@strapi/plugin-i18n@${STRAPI_VERSION}" "@strapi/plugin-cloud@${STRAPI_VERSION}" --prod || echo "Update failed!"
+    current_strapi_code="$(echo "${current_strapi_version}" | tr -d "." )"
+    image_strapi_code="$(echo "${STRAPI_VERSION}" | tr -d "." )"
+    if [ "${image_strapi_code}" -gt "${current_strapi_code}" ]; then
+      echo "Strapi update needed: v${current_strapi_version} to v${STRAPI_VERSION}. Updating ..."
+      if [ -f "yarn.lock" ]; then
+        yarn add "@strapi/strapi@${STRAPI_VERSION}" "@strapi/plugin-users-permissions@${STRAPI_VERSION}" "@strapi/plugin-i18n@${STRAPI_VERSION}" "@strapi/plugin-cloud@${STRAPI_VERSION}" --prod || { echo "Upgrade failed"; exit 1; }
+      else
+        npm install @strapi/strapi@"${STRAPI_VERSION}" @strapi/plugin-users-permissions@"${STRAPI_VERSION}" @strapi/plugin-i18n@"${STRAPI_VERSION}" @strapi/plugin-cloud@"${STRAPI_VERSION}" --only=prod || { echo "Upgrade failed"; exit 1; }
       fi
-
-    else
-      
-      current_strapi_version="$(npm list | grep @strapi/strapi | cut -d @ -f 3)"
-      current_strapi_code="$(echo "${current_strapi_version}" | tr -d "." )"
-      image_strapi_code="$(echo "${STRAPI_VERSION}" | tr -d "." )"
-      if [ "${image_strapi_code}" -gt "${current_strapi_code}" ]; then
-        echo "Strapi update needed: v${current_strapi_version} to v${STRAPI_VERSION}. Updating using npm ..."
-        npm install @strapi/strapi@"${STRAPI_VERSION}" @strapi/plugin-users-permissions@"${STRAPI_VERSION}" @strapi/plugin-i18n@"${STRAPI_VERSION}" @strapi/plugin-cloud@"${STRAPI_VERSION}" --only=prod || echo "Update failed!"
-      fi
-
     fi
   fi
 
-  if [ -f "yarn.lock" ]; then
-
-    if ! grep -q "\"react\"" package.json; then
-      echo "Adding React and Styled Components with yarn..."
-      yarn add "react@^18.0.0" "react-dom@^18.0.0" "react-router-dom@^5.3.4" "styled-components@^5.3.3" --prod || echo "Adding React and Styled Components failed!"
+  if ! grep -q "\"react\"" package.json; then
+    echo "Adding React and Styled Components..."
+    if [ -f "yarn.lock" ]; then
+      yarn add "react@^18.0.0" "react-dom@^18.0.0" "react-router-dom@^5.3.4" "styled-components@^5.3.3" --prod || { echo "Adding React and Styled Components failed"; exit 1; }
+    else
+      npm install react@"^18.0.0" react-dom@"^18.0.0" react-router-dom@"^5.3.4" styled-components@"^5.3.3" --only=prod || { echo "Adding React and Styled Components failed"; exit 1; }
     fi
-
-  else
-
-    if ! grep -q "\"react\"" package.json; then
-      echo "Adding React and Styled Components with npm..."
-      npm install react@"^18.0.0" react-dom@"^18.0.0" react-router-dom@"^5.3.4" styled-components@"^5.3.3" --only=prod || echo "Adding React and Styled Components failed!"
-    fi
-
   fi
 
   BUILD=${BUILD:-false}
 
   if [ "$BUILD" = "true" ]; then
-
+    echo "Building Strapi admin..."
     if [ -f "yarn.lock" ]; then
-
-      echo "Building strapi admin using yarn ..."
       yarn build
-
     else
-
-      echo "Building strapi admin using npm ..."
       npm run build
-
     fi
-
   fi
 
   if [ "$NODE_ENV" = "production" ]; then
@@ -263,13 +232,9 @@ EOT
   echo "Starting your app (with ${STRAPI_MODE:-develop})..."
 
   if [ -f "yarn.lock" ]; then
-
     exec yarn "${STRAPI_MODE:-develop}"
-
   else
-
     exec npm run "${STRAPI_MODE:-develop}"
-
   fi
 
 else
