@@ -214,7 +214,7 @@ jobs:
 
   release:
     name: Release
-    needs: [tags, build-and-test]
+    needs: [tags, build-and-push]
     runs-on: ubuntu-latest
 
     env:
