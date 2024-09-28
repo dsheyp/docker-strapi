@@ -1,10 +1,3 @@
-###########
-# ENV VARS:
-# - DOCKER_USERNAME
-# - DOCKER_PASSWORD
-# - GITHUB_TOKEN (default)
-###########
-
 name: Publish Docker Image
 
 on:
@@ -13,31 +6,50 @@ on:
       - 'release-versions/*'
 
 jobs:
-  build:
+  tags:
+    name: Get Tags
     runs-on: ubuntu-latest
-    steps:
 
-      - name: Get current repository
+    outputs:
+      tag: ${{ steps.vars.outputs.TAG }}
+      latest: ${{ steps.vars.outputs.LATEST }}
+
+    steps:
+      - name: Get Current Repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Get changed files
+      - name: Get Changed Release Files
         id: changed-files
         uses: tj-actions/changed-files@v45
         with:
           files: release-versions/**
 
-      - name: Get the version
+      - name: Get Tag and Latest
         id: vars
         run: |
           if echo "${{ steps.changed-files.outputs.modified_files }}" | grep -q 'strapi-v5-latest.txt'; then
-            echo "tag=$(cat release-versions/strapi-v5-latest.txt)" >> "$GITHUB_OUTPUT"
-            echo "latest=latest" >> "$GITHUB_OUTPUT"
+            echo "TAG=$(cat release-versions/strapi-v5-latest.txt)" >> "$GITHUB_OUTPUT"
+            echo "LATEST=latest" >> "$GITHUB_OUTPUT"
           else
-            echo "tag=$(cat release-versions/strapi-v4-latest.txt)" >> "$GITHUB_OUTPUT"
-            echo "latest=latest-v4" >> "$GITHUB_OUTPUT"
-          fi
+            echo "TAG=$(cat release-versions/strapi-v4-latest.txt)" >> "$GITHUB_OUTPUT"
+            echo "LATEST=latest-v4" >> "$GITHUB_OUTPUT"
+          fi  
+
+  test-image:
+    name: Test Debian Image
+    needs: [tags]
+    runs-on: ubuntu-latest
+
+    env:
+      TAG: ${{ needs.tags.outputs.tag }}
+      OLDV4: 4.15.0
+      OLDV5: 5.0.0
+    
+    steps:
+      - name: Get Current Repository
+        uses: actions/checkout@v4
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -50,22 +62,99 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Build and export to Docker
+      
+      - name: Build Latest Image and Export to Docker
         uses: docker/build-push-action@v6
         with:
           load: true
           context: ./images/strapi-debian
           build-args: |
-            STRAPI_VERSION=${{steps.vars.outputs.tag}}
+            STRAPI_VERSION=${{ env.TAG }}
             NODE_VERSION=18
             NODE=node
             GITHUB_ACTIONS=1
-          tags: ${{ secrets.DOCKER_USERNAME }}/strapi:test
+          tags: ${{ secrets.DOCKER_USERNAME }}/strapi:lat
 
-      - name: Test Image
+      - name: Run Latest Image
+        timeout-minutes: 10
         run: |
-          docker run --rm ${{ secrets.DOCKER_USERNAME }}/strapi:test          
+          docker run --rm ${{ secrets.DOCKER_USERNAME }}/strapi:lat
+      
+      - name: Create Temp V4 and V5 Volumes
+        run: |
+          mkdir ${{ runner.temp }}/strapiv4 ${{ runner.temp }}/strapiv5
+      
+      - name: Build Old V4 Image and Export to Docker
+        uses: docker/build-push-action@v6
+        with:
+          load: true
+          context: ./images/strapi-debian
+          build-args: |
+            STRAPI_VERSION=${{ env.OLDV4 }}
+            NODE_VERSION=18
+            NODE=node
+            GITHUB_ACTIONS=1
+          tags: ${{ secrets.DOCKER_USERNAME }}/strapi:oldv4
+
+      - name: Init Old V4 Image
+        timeout-minutes: 10
+        run: |
+          docker run --rm -v ${{ runner.temp }}/strapiv4:/srv/app ${{ secrets.DOCKER_USERNAME }}/strapi:oldv4
+        
+      - name: Test Old V4 Image Upgrade
+        timeout-minutes: 10
+        run: |
+          docker run --rm -v ${{ runner.temp }}/strapiv4:/srv/app ${{ secrets.DOCKER_USERNAME }}/strapi:lat
+      
+      - name: Build Old V5 Image and Export to Docker
+        uses: docker/build-push-action@v6
+        if: startsWith(env.TAG, '5')
+        with:
+          load: true
+          context: ./images/strapi-debian
+          build-args: |
+            STRAPI_VERSION=${{ env.OLDV5 }}
+            NODE_VERSION=18
+            NODE=node
+            GITHUB_ACTIONS=1
+          tags: ${{ secrets.DOCKER_USERNAME }}/strapi:oldv5
+
+      - name: Init Old V5 Image
+        if: startsWith(env.TAG, '5')
+        timeout-minutes: 10
+        run: |
+          docker run --rm -v ${{ runner.temp }}/strapiv4:/srv/app ${{ secrets.DOCKER_USERNAME }}/strapi:oldv5
+        
+      - name: Test Old V5 Image Upgrade
+        if: startsWith(env.TAG, '5')
+        timeout-minutes: 10
+        run: |
+          docker run --rm -v ${{ runner.temp }}/strapiv4:/srv/app ${{ secrets.DOCKER_USERNAME }}/strapi:lat
+
+  build-and-push:
+    name: Build and Push Images
+    needs: [tags, test-image]
+    runs-on: ubuntu-latest
+
+    env:
+      TAG: ${{ needs.tags.outputs.tag }}
+      LATEST: ${{ needs.tags.outputs.latest }}
+
+    steps:
+      - name: Get Current Repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}       
 
       - name: Build (default => debian)
         uses: docker/build-push-action@v6
@@ -73,26 +162,27 @@ jobs:
           context: ./images/strapi-debian
           platforms: linux/amd64
           build-args: |
-            STRAPI_VERSION=${{steps.vars.outputs.tag}}
+            STRAPI_VERSION=${{ env.TAG }}
             NODE_VERSION=18
             NODE=node
           push: true
           tags: |
-            ${{ secrets.DOCKER_USERNAME }}/strapi:${{ steps.vars.outputs.tag }}
-            ${{ secrets.DOCKER_USERNAME }}/strapi:${{ steps.vars.outputs.latest }}
+            ${{ secrets.DOCKER_USERNAME }}/strapi:${{ env.TAG }}
+            ${{ secrets.DOCKER_USERNAME }}/strapi:${{ env.LATEST }}
+
       - name: Build (alpine)
         uses: docker/build-push-action@v6
         with:
           context: ./images/strapi-alpine
           platforms: linux/amd64
           build-args: |
-            STRAPI_VERSION=${{ steps.vars.outputs.tag }}
+            STRAPI_VERSION=${{ env.TAG }}
             NODE_VERSION=18
             NODE=node
           push: true
           tags: |
-            ${{ secrets.DOCKER_USERNAME }}/strapi:${{ steps.vars.outputs.tag }}-alpine
-            ${{ secrets.DOCKER_USERNAME }}/strapi:${{ steps.vars.outputs.latest }}-alpine
+            ${{ secrets.DOCKER_USERNAME }}/strapi:${{ env.TAG }}-alpine
+            ${{ secrets.DOCKER_USERNAME }}/strapi:${{ env.LATEST }}-alpine
       
       - name: Build (default => debian arm64)
         uses: docker/build-push-action@v6
@@ -100,13 +190,13 @@ jobs:
           context: ./images/strapi-debian
           platforms: linux/arm64
           build-args: |
-            STRAPI_VERSION=${{steps.vars.outputs.tag}}
+            STRAPI_VERSION=${{ env.TAG }}
             NODE_VERSION=18
             NODE=arm64v8/node
           push: true
           tags: |
-            ${{ secrets.DOCKER_USERNAME }}/strapi:${{ steps.vars.outputs.tag }}-arm64
-            ${{ secrets.DOCKER_USERNAME }}/strapi:${{ steps.vars.outputs.latest }}-arm64
+            ${{ secrets.DOCKER_USERNAME }}/strapi:${{ env.TAG }}-arm64
+            ${{ secrets.DOCKER_USERNAME }}/strapi:${{ env.LATEST }}-arm64
 
       - name: Build (alpine arm64)
         uses: docker/build-push-action@v6
@@ -114,30 +204,51 @@ jobs:
           context: ./images/strapi-alpine
           platforms: linux/arm64
           build-args: |
-            STRAPI_VERSION=${{ steps.vars.outputs.tag }}
+            STRAPI_VERSION=${{ env.TAG }}
             NODE_VERSION=18
             NODE=arm64v8/node
           push: true
           tags: |
-            ${{ secrets.DOCKER_USERNAME }}/strapi:${{ steps.vars.outputs.tag }}-alpine-arm64
-            ${{ secrets.DOCKER_USERNAME }}/strapi:${{ steps.vars.outputs.latest }}-alpine-arm64
+            ${{ secrets.DOCKER_USERNAME }}/strapi:${{ env.TAG }}-alpine-arm64
+            ${{ secrets.DOCKER_USERNAME }}/strapi:${{ env.LATEST }}-alpine-arm64
 
-      - name: Docker Hub Description (README.md)
-        uses: peter-evans/dockerhub-description@v4
+  release:
+    name: Release
+    needs: [tags, build-and-test]
+    runs-on: ubuntu-latest
+
+    env:
+      TAG: ${{ needs.tags.outputs.tag }}
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Get Current Repository
+        uses: actions/checkout@v4
+      
+      - name: Create Latest Release in GitHub
+        id: create_v5_release
+        if: startsWith(env.TAG, '5')
+        uses: softprops/action-gh-release@v2
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-          repository: vshadbolt/strapi
-          readme-filepath: README.md
-          enable-url-completion: true
-
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag_name: v${{ env.TAG }}
+          prerelease: false
+          draft: false
+          generate_release_notes: true
+          name: Release ${{ env.TAG }}
+          make_latest: true
+      
       - name: Create Release in GitHub
-        id: create_release
-        uses: actions/create-release@v1
-        continue-on-error: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+        id: create_v4_release
+        if: startsWith(env.TAG, '4')
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{steps.vars.outputs.tag}}
-          release_name: Release ${{steps.vars.outputs.tag}}
-          body: strapi v${{steps.vars.outputs.tag}}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag_name: v${{ env.TAG }}
+          prerelease: false
+          draft: false
+          generate_release_notes: true
+          name: Release ${{ env.TAG }}
+          make_latest: false

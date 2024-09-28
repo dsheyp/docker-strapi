@@ -1,8 +1,3 @@
-###################
-# ENV VARS:
-# - PAT (generated at Personal Access Tokens - with workflow access checked)
-###################
-
 name: Create new release manually
 
 on:
@@ -15,7 +10,8 @@ on:
         type: string
 
 jobs:
-  get-version:
+  release-version:
+    name: Release
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
