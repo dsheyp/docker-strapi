@@ -180,12 +180,12 @@ EOT
       updated_patch=$3
 
       if [ "$image_major" -eq "$updated_major" ] && [ "$image_minor" -eq "$updated_minor" ] && [ "$image_patch" -gt "$updated_patch" ]; then
-        echo "Post-upgrade patch update needed: v${current_strapi_version} to v${image_major}.${image_minor}.${image_patch}. Updating..."
+        echo "Post-upgrade patch update needed: v${updated_strapi_version} to v${image_major}.${image_minor}.${image_patch}. Updating..."
         npx @strapi/upgrade@${STRAPI_VERSION} patch -y || { echo "Post-upgrade patch update failed"; exit 1; }
       fi
 
       if [ "$image_major" -eq "$updated_major" ] && [ "$image_minor" -gt "$updated_minor" ]; then
-        echo "Post-upgrade minor update needed: v${current_strapi_version} to v${image_major}.${image_minor}.${image_patch}. Updating..."
+        echo "Post-upgrade minor update needed: v${updated_strapi_version} to v${image_major}.${image_minor}.${image_patch}. Updating..."
         npx @strapi/upgrade@${STRAPI_VERSION} minor -y || { echo "Post-upgrade minor update failed"; exit 1; }
       fi
 

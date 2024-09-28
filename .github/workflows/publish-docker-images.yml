@@ -238,6 +238,7 @@ jobs:
           draft: false
           generate_release_notes: true
           name: Release ${{ env.TAG }}
+          body: Strapi v${{ env.TAG }}
           make_latest: true
       
       - name: Create Release in GitHub
@@ -251,4 +252,5 @@ jobs:
           draft: false
           generate_release_notes: true
           name: Release ${{ env.TAG }}
+          body: Strapi v${{ env.TAG }}
           make_latest: false
