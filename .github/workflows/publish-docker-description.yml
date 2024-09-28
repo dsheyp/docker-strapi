@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-     - name: Get Current Repository
+      - name: Get Current Repository
         uses: actions/checkout@v4
 
       - name: Set Docker Hub Description (README.md)
