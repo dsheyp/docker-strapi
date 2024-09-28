@@ -263,9 +263,8 @@ EOT
   echo "Starting your app (with ${STRAPI_MODE:-develop})..."
 
   if [ "$GITHUB_ACTIONS" -eq 1 ]; then
-    pipe="$(mktemp pipe.XXXXXX)"
-    rm "$pipe" 2>/dev/null
-    mkfifo "$pipe"
+    rm -f pipe
+    mkfifo pipe
 
     if [ -f "yarn.lock" ]; then
       yarn "${STRAPI_MODE:-develop}" > pipe & pid=$!
@@ -273,7 +272,7 @@ EOT
       npm run "${STRAPI_MODE:-develop}" > pipe & pid=$!
     fi
 
-    exec 3<"$pipe"
+    exec 3<pipe
     while IFS= read -r line <&3; do
       lower_line=$(echo "$line" | tr '[:upper:]' '[:lower:]')
       printf '%s\n' "$lower_line"
@@ -282,7 +281,7 @@ EOT
         exec 3<&-
         kill "$pid"
         echo "Successfully launched Strapi. Exiting container with code 0..."
-        rm "$pipe" 2>/dev/null
+        rm -f pipe
         exit 0
       fi
       
@@ -290,7 +289,7 @@ EOT
         exec 3<&-
         kill "$pid"
         echo "Failed to launch Strapi. Exiting container with code 1..."
-        rm "$pipe" 2>/dev/null
+        rm -f pipe
         exit 1
       fi
 
