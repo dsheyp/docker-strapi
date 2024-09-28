@@ -123,13 +123,13 @@ jobs:
         if: startsWith(env.TAG, '5')
         timeout-minutes: 10
         run: |
-          docker run --rm -v ${{ runner.temp }}/strapiv4:/srv/app ${{ secrets.DOCKER_USERNAME }}/strapi:oldv5
+          docker run --rm -v ${{ runner.temp }}/strapiv5:/srv/app ${{ secrets.DOCKER_USERNAME }}/strapi:oldv5
         
       - name: Test Old V5 Image Upgrade
         if: startsWith(env.TAG, '5')
         timeout-minutes: 10
         run: |
-          docker run --rm -v ${{ runner.temp }}/strapiv4:/srv/app ${{ secrets.DOCKER_USERNAME }}/strapi:lat
+          docker run --rm -v ${{ runner.temp }}/strapiv5:/srv/app ${{ secrets.DOCKER_USERNAME }}/strapi:lat
 
   build-and-push:
     name: Build and Push Images
