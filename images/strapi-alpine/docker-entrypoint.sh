@@ -240,6 +240,6 @@ EOT
     exec npm run "${STRAPI_MODE:-develop}"
   fi
 
-else
+#else
   # exec "$@"
-fi
+#fi
