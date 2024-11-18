@@ -237,9 +237,9 @@ EOT
     echo "ls"
     exec ls
     echo "done debug"
-    exec npm run "${STRAPI_MODE:-develop}"
+    #exec npm run "${STRAPI_MODE:-develop}"
   fi
 
-#else
-  # exec "$@"
+else
+  exec "$@"
 fi
