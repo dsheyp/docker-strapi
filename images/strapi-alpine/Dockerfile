@@ -8,7 +8,7 @@ FROM base-alpine
 
 RUN mkdir -p /srv/app && chown 1000:1000 -R /srv/app
 
-ARG STRAPI_VERSION=4.24.2
+ARG STRAPI_VERSION=5.4.0
 
 ENV STRAPI_VERSION=$STRAPI_VERSION
 
