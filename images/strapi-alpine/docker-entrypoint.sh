@@ -241,5 +241,5 @@ EOT
   fi
 
 else
-  exec "$@"
+  # exec "$@"
 fi
