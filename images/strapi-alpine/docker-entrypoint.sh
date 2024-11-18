@@ -114,12 +114,6 @@ module.exports = ({env}) => ([
 ]);
 EOT
 
-  echo "pwd"
-  echo $(pwd)
-  echo "ls -la"
-  echo $(ls -la)
-  echo "done debug"
-
   elif [ ! -d "node_modules" ] || [ ! "$(ls -qAL node_modules 2>/dev/null)" ]; then
     echo "Node modules not installed. Installing ..."
     if [ -f "yarn.lock" ]; then
@@ -240,6 +234,11 @@ EOT
   if [ -f "yarn.lock" ]; then
     exec yarn "${STRAPI_MODE:-develop}"
   else
+    echo "pwd"
+    exec pwd
+    echo "ls -la"
+    exec ls -la
+    echo "done debug"
     exec npm run "${STRAPI_MODE:-develop}"
   fi
 
