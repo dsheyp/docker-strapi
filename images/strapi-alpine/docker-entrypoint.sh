@@ -115,9 +115,9 @@ module.exports = ({env}) => ([
 EOT
 
   echo "pwd"
-  pwd
+  echo $(pwd)
   echo "ls -la"
-  ls -la
+  echo $(ls -la)
   echo "done debug"
 
   elif [ ! -d "node_modules" ] || [ ! "$(ls -qAL node_modules 2>/dev/null)" ]; then
