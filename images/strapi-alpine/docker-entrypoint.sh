@@ -123,86 +123,6 @@ EOT
     fi
   fi
 
-  if [ -f "yarn.lock" ]; then
-    current_strapi_version="$(yarn list --pattern strapi --depth=0 | grep @strapi/strapi | cut -d @ -f 3)"
-  else
-    current_strapi_version="$(npm list | grep @strapi/strapi | cut -d @ -f 3)"
-  fi
-
-  get_version_parts() {
-    echo "$1" | awk -F. '{print $1, $2, $3}'
-  }
-
-  if [ "${STRAPI_VERSION#5}" != "$STRAPI_VERSION" ]; then
-
-    version_parts=$(get_version_parts "$current_strapi_version")
-    set -- $version_parts
-    current_major=$1
-    current_minor=$2
-    current_patch=$3
-
-    version_parts=$(get_version_parts "$STRAPI_VERSION")
-    set -- $version_parts
-    image_major=$1
-    image_minor=$2
-    image_patch=$3
-
-    if [ "$image_major" -eq "$current_major" ] && [ "$image_minor" -eq "$current_minor" ] && [ "$image_patch" -gt "$current_patch" ]; then
-      echo "Patch upgrade needed: v${current_strapi_version} to v${image_major}.${image_minor}.${image_patch}. Upgrading..."
-      npx @strapi/upgrade@${STRAPI_VERSION} patch -y || { echo "Patch upgrade failed"; exit 1; }
-    fi
-
-    if [ "$image_major" -eq "$current_major" ] && [ "$image_minor" -gt "$current_minor" ]; then
-      echo "Minor upgrade needed: v${current_strapi_version} to v${image_major}.${image_minor}.${image_patch}. Upgrading..."
-      npx @strapi/upgrade@${STRAPI_VERSION} minor -y || { echo "Minor upgrade failed"; exit 1; }
-    fi
-
-    if [ "$image_major" -gt "$current_major" ]; then
-      echo "Major upgrade needed: v${current_strapi_version} to v${image_major}.${image_minor}.${image_patch}. Upgrading..."
-      echo "Ensuring the current version of Strapi is on the latest minor and patch before major upgrade..."
-      echo "Performing pre-upgrade patch updates..."
-      npx @strapi/upgrade@${STRAPI_VERSION} patch -y || echo "Pre-upgrade patch update failed or not needed. Check the logs. Continuing..."
-      echo "Performing pre-upgrade minor updates..."
-      npx @strapi/upgrade@${STRAPI_VERSION} minor -y || echo "Pre-upgrade minor update failed or not needed. Check the logs. Continuing..."
-      echo "Performing major upgrade..."
-      npx @strapi/upgrade@${STRAPI_VERSION} major -y || { echo "Major upgrade failed"; exit 1; }
-
-      if [ -f "yarn.lock" ]; then
-        updated_strapi_version="$(yarn list --pattern strapi --depth=0 | grep @strapi/strapi | cut -d @ -f 3)"
-      else
-        updated_strapi_version="$(npm list | grep @strapi/strapi | cut -d @ -f 3)"
-      fi
-
-      version_parts=$(get_version_parts "$updated_strapi_version")
-      set -- $version_parts
-      updated_major=$1
-      updated_minor=$2
-      updated_patch=$3
-
-      if [ "$image_major" -eq "$updated_major" ] && [ "$image_minor" -eq "$updated_minor" ] && [ "$image_patch" -gt "$updated_patch" ]; then
-        echo "Post-upgrade patch update needed: v${updated_strapi_version} to v${image_major}.${image_minor}.${image_patch}. Updating..."
-        npx @strapi/upgrade@${STRAPI_VERSION} patch -y || { echo "Post-upgrade patch update failed"; exit 1; }
-      fi
-
-      if [ "$image_major" -eq "$updated_major" ] && [ "$image_minor" -gt "$updated_minor" ]; then
-        echo "Post-upgrade minor update needed: v${updated_strapi_version} to v${image_major}.${image_minor}.${image_patch}. Updating..."
-        npx @strapi/upgrade@${STRAPI_VERSION} minor -y || { echo "Post-upgrade minor update failed"; exit 1; }
-      fi
-
-    fi
-  else
-    current_strapi_code="$(echo "${current_strapi_version}" | tr -d "." )"
-    image_strapi_code="$(echo "${STRAPI_VERSION}" | tr -d "." )"
-    if [ "${image_strapi_code}" -gt "${current_strapi_code}" ]; then
-      echo "Strapi update needed: v${current_strapi_version} to v${STRAPI_VERSION}. Updating ..."
-      if [ -f "yarn.lock" ]; then
-        yarn add "@strapi/strapi@${STRAPI_VERSION}" "@strapi/plugin-users-permissions@${STRAPI_VERSION}" "@strapi/plugin-i18n@${STRAPI_VERSION}" "@strapi/plugin-cloud@${STRAPI_VERSION}" --prod || { echo "Upgrade failed"; exit 1; }
-      else
-        npm install @strapi/strapi@"${STRAPI_VERSION}" @strapi/plugin-users-permissions@"${STRAPI_VERSION}" @strapi/plugin-i18n@"${STRAPI_VERSION}" @strapi/plugin-cloud@"${STRAPI_VERSION}" --only=prod || { echo "Upgrade failed"; exit 1; }
-      fi
-    fi
-  fi
-
   if ! grep -q "\"react\"" package.json; then
     echo "Adding React and Styled Components..."
     if [ -f "yarn.lock" ]; then
@@ -212,7 +132,9 @@ EOT
     fi
   fi
 
-  BUILD=${BUILD:-false}
+  #BUILD=${BUILD:-false}"
+
+  BUILD="true"
 
   if [ "$BUILD" = "true" ]; then
     echo "Building Strapi admin..."
@@ -235,7 +157,7 @@ EOT
     exec yarn "${STRAPI_MODE:-develop}"
   else
     echo "ls"
-    exec ls
+    exec more yarn-error.log
     echo "done debug"
     #exec npm run "${STRAPI_MODE:-develop}"
   fi
