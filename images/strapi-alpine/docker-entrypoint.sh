@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -ea
 
 if [ "$*" = "strapi" ]; then
