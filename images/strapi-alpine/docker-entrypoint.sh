@@ -234,10 +234,8 @@ EOT
   if [ -f "yarn.lock" ]; then
     exec yarn "${STRAPI_MODE:-develop}"
   else
-    echo "pwd"
-    exec pwd
-    echo "ls -la"
-    exec ls -la
+    echo "ls"
+    exec ls
     echo "done debug"
     exec npm run "${STRAPI_MODE:-develop}"
   fi
