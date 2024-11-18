@@ -114,6 +114,12 @@ module.exports = ({env}) => ([
 ]);
 EOT
 
+  echo "pwd"
+  pwd
+  echo "ls -la"
+  ls -la
+  echo "done debug"
+
   elif [ ! -d "node_modules" ] || [ ! "$(ls -qAL node_modules 2>/dev/null)" ]; then
     echo "Node modules not installed. Installing ..."
     if [ -f "yarn.lock" ]; then
