@@ -12,27 +12,7 @@ if [ "$*" = "strapi" ]; then
     echo "Using strapi v$STRAPI_VERSION"
     echo "No project found at /srv/app. Creating a new strapi project ..."
 
-    if [ "${STRAPI_VERSION#5}" != "$STRAPI_VERSION" ]; then
-      DOCKER=true npx create-strapi-app@${STRAPI_VERSION} . --no-run \
-        --js \
-        --install \
-        --no-git-init \
-        --no-example \
-        --skip-cloud \
-        --skip-db \
-        $EXTRA_ARGS
-    elif [ "${STRAPI_VERSION#4.25}" != "$STRAPI_VERSION" ]; then
-      DOCKER=true npx create-strapi-app@${STRAPI_VERSION} . --no-run \
-        --skip-cloud \
-        --dbclient=$DATABASE_CLIENT \
-        --dbhost=$DATABASE_HOST \
-        --dbport=$DATABASE_PORT \
-        --dbname=$DATABASE_NAME \
-        --dbusername=$DATABASE_USERNAME \
-        --dbpassword=$DATABASE_PASSWORD \
-        --dbssl=$DATABASE_SSL \
-        $EXTRA_ARGS
-    else
+
       DOCKER=true npx create-strapi-app@${STRAPI_VERSION} . --no-run \
         --dbclient=$DATABASE_CLIENT \
         --dbhost=$DATABASE_HOST \
@@ -42,7 +22,6 @@ if [ "$*" = "strapi" ]; then
         --dbpassword=$DATABASE_PASSWORD \
         --dbssl=$DATABASE_SSL \
         $EXTRA_ARGS
-    fi
     
     echo "" >| 'config/server.js'
     echo "" >| 'config/admin.js'
