@@ -25,13 +25,12 @@ if [ "$*" = "strapi" ]; then
     echo "No project found at /srv/app. Creating a new strapi project ..."
 
       DOCKER=true npx create-strapi-app@${STRAPI_VERSION} . --no-run \
-        --dbclient=$DATABASE_CLIENT \
-        --dbhost=$DATABASE_HOST \
-        --dbport=$DATABASE_PORT \
-        --dbname=$DATABASE_NAME \
-        --dbusername=$DATABASE_USERNAME \
-        --dbpassword=$DATABASE_PASSWORD \
-        --dbssl=$DATABASE_SSL \
+        --js \
+        --install \
+        --no-git-init \
+        --no-example \
+        --skip-cloud \
+        --skip-db \
         $EXTRA_ARGS
     
     echo "" >| 'config/server.js'
