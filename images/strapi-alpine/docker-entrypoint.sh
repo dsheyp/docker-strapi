@@ -103,6 +103,7 @@ module.exports = ({env}) => ([
   'strapi::public',
 ]);
 EOT
+  fi
 
   if ! grep -q "\"react\"" package.json; then
     echo "Adding React and Styled Components..."
