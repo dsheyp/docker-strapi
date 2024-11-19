@@ -1,9 +1,20 @@
 #!/bin/sh
 set -ea
 
+
+echo "file start"
+
+
 if [ "$*" = "strapi" ]; then
 
+
+  echo "first block"
+
+
   if [ ! -f "package.json" ]; then
+
+
+    echo "second block"
 
     DATABASE_CLIENT=${DATABASE_CLIENT:-sqlite}
 
