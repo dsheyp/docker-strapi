@@ -12,7 +12,7 @@ if [ "$*" = "strapi" ]; then
 
 
   #if [ ! -f "package.json" ]; then
-  if [ 1 > 0]; then
+  if [ 1 -gt 0 ]; then
 
 
     echo "second block"
