@@ -24,7 +24,6 @@ if [ "$*" = "strapi" ]; then
     echo "Using strapi v$STRAPI_VERSION"
     echo "No project found at /srv/app. Creating a new strapi project ..."
 
-
       DOCKER=true npx create-strapi-app@${STRAPI_VERSION} . --no-run \
         --dbclient=$DATABASE_CLIENT \
         --dbhost=$DATABASE_HOST \
@@ -104,16 +103,6 @@ module.exports = ({env}) => ([
   'strapi::public',
 ]);
 EOT
-
-  elif [ ! -d "node_modules" ] || [ ! "$(ls -qAL node_modules 2>/dev/null)" ]; then
-    echo "Node modules not installed. Installing ..."
-    if [ -f "yarn.lock" ]; then
-      yarn install --prod
-    else
-      #npm install --only=prod
-      npm install
-    fi
-  fi
 
   if ! grep -q "\"react\"" package.json; then
     echo "Adding React and Styled Components..."
