@@ -119,7 +119,8 @@ EOT
     if [ -f "yarn.lock" ]; then
       yarn install --prod
     else
-      npm install --only=prod
+      #npm install --only=prod
+      npm install
     fi
   fi
 
