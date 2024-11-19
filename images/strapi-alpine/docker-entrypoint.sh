@@ -14,6 +14,7 @@ if [ "$*" = "strapi" ]; then
   #if [ ! -f "package.json" ]; then
   if [ 1 -gt 0 ]; then
 
+
     echo "second block"
 
     DATABASE_CLIENT=${DATABASE_CLIENT:-sqlite}
@@ -23,15 +24,102 @@ if [ "$*" = "strapi" ]; then
     echo "Using strapi v$STRAPI_VERSION"
     echo "No project found at /srv/app. Creating a new strapi project ..."
 
+    rm -Rf .
+
       DOCKER=true npx create-strapi-app@${STRAPI_VERSION} . --no-run \
-        --js \
         --install \
-        --no-git-init \
-        --no-example \
         --skip-cloud \
-        --skip-db \
+        --no-example \
+        --dbclient=$DATABASE_CLIENT \
+        --dbhost=$DATABASE_HOST \
+        --dbport=$DATABASE_PORT \
+        --dbname=$DATABASE_NAME \
+        --dbusername=$DATABASE_USERNAME \
+        --dbpassword=$DATABASE_PASSWORD \
+        --dbssl=$DATABASE_SSL \
         $EXTRA_ARGS
+    
+    echo "" >| 'config/server.js'
+    echo "" >| 'config/admin.js'
+    echo "" >| 'config/middlewares.js'
+
+    cat <<-EOT >> 'config/server.js'
+module.exports = ({ env }) => ({
+  host: env('HOST', '0.0.0.0'),
+  port: env.int('PORT', 1337),
+  url: env('PUBLIC_URL', 'http://localhost:1337'),
+  app: {
+    keys: env.array('APP_KEYS'),
+  },
+  webhooks: {
+    populateRelations: env.bool('WEBHOOKS_POPULATE_RELATIONS', false),
+  },
+});
+EOT
+
+    cat <<-EOT >> 'config/admin.js'
+module.exports = ({ env }) => ({
+  url: env('ADMIN_URL', 'http://localhost:1337/admin'),
+  auth: {
+    secret: env('ADMIN_JWT_SECRET'),
+  },
+  apiToken: {
+    salt: env('API_TOKEN_SALT'),
+  },
+  transfer: {
+    token: {
+      salt: env('TRANSFER_TOKEN_SALT'),
+    },
+  },
+});
+EOT
+
+    cat <<-EOT >> 'config/middlewares.js'
+module.exports = ({env}) => ([
+  'strapi::logger',
+  'strapi::errors',
+  {
+    name: 'strapi::security',
+    config: {
+      contentSecurityPolicy: {
+        useDefaults: true,
+        directives: {
+          'connect-src': ["'self'", 'http:', 'https:'],
+          'img-src': env('IMG_ORIGIN', "'self',data:,blob:,market-assets.strapi.io").split(','),
+          upgradeInsecureRequests: null,
+        },
+      },
+    },
+  },
+  {
+    name: 'strapi::cors',
+    config: {
+      origin: env('CORS_ORIGIN', '*').split(','),
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'],
+      headers: ['Content-Type', 'Authorization', 'Origin', 'Accept'],
+      keepHeaderOnError: true,
+    }
+  },
+  'strapi::poweredBy',
+  'strapi::query',
+  'strapi::body',
+  'strapi::session',
+  'strapi::favicon',
+  'strapi::public',
+]);
+EOT
   fi
+
+  if ! grep -q "\"react\"" package.json; then
+    echo "Adding React and Styled Components..."
+    if [ -f "yarn.lock" ]; then
+      yarn add "react@^18.0.0" "react-dom@^18.0.0" "react-router-dom@^5.3.4" "styled-components@^5.3.3" --prod || { echo "Adding React and Styled Components failed"; exit 1; }
+    else
+      npm install react@"^18.0.0" react-dom@"^18.0.0" react-router-dom@"^5.3.4" styled-components@"^5.3.3" --only=prod || { echo "Adding React and Styled Components failed"; exit 1; }
+    fi
+  fi
+
+  #BUILD=${BUILD:-false}"
 
   BUILD="true"
 
